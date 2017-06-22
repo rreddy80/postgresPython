@@ -1,0 +1,10 @@
+{
+"ssh_server": "jump_server_ip",
+"ssh_user": "jump_server_username",
+"ssh_pass": "jump_server_password",
+"db_server": "database_server_ip",
+"db_port": database_server_port,
+"default_database": "database_default",
+"db_user": "database_username",
+"db_password": "database_password"
+}
