@@ -1,13 +1,15 @@
 """
+run a query against a given environment:
+******************************************
 python connect2pg.py <<environment>> <<database-name>> <<query-to-run>>
 
 to simply list all databases:
 ******************************
-python connect2pg.py <<environment>> get-databases
+python connect2pg.py <<environment>> get_all_databases
 
 to simply list all tables in a database:
 *****************************************
-python connect2pg.py <<environment>> <<database-name>> get-tables
+python connect2pg.py <<environment>> <<database-name>> get_all_tables
 """
 import sys
 import json
@@ -19,7 +21,7 @@ import psycopg2
 from sshtunnel import SSHTunnelForwarder
 
 
-def connectToDbServer(ssh_user, ssh_pass, db_server='10.125.20.7', db_port=5432, ssh_server='10.224.6.13', ssh_port=22):
+def connect_db_server(ssh_user, ssh_pass, db_server='10.123.45.6', db_port=5432, ssh_server='10.234.5.67', ssh_port=22):
     """create a DB connection using SSH SSHTunnelForwarder"""
     server = SSHTunnelForwarder(
         (ssh_server, ssh_port),
@@ -27,23 +29,23 @@ def connectToDbServer(ssh_user, ssh_pass, db_server='10.125.20.7', db_port=5432,
         ssh_username=ssh_user,
         remote_bind_address=(db_server, db_port),
         local_bind_address=('0.0.0.0', 10022))
-    server = startServer(server)
+    server = start_server(server)
     return server
 
 
-def log(givenMessage):
+def log(given_message):
     """log a given message in a particular format"""
-    print "{0} {1}".format(getFormattedTime(), givenMessage)
-    with open('pylog.log', 'a') as fl:
-        fl.write("{0} {1}\n".format(getFormattedTime(), givenMessage))
+    print "{0} {1}".format(get_formatted_time(), given_message)
+    with open('pylog.log', 'a') as new_file:
+        new_file.write("{0} {1}\n".format(get_formatted_time(), given_message))
 
 
-def getFormattedTime():
+def get_formatted_time():
     """get a time format"""
     return strftime("%Y-%m-%d %H:%M:%S ", gmtime())
 
 
-def startServer(server):
+def start_server(server):
     """start the server"""
     try:
         log(server.local_bind_port)
@@ -53,19 +55,37 @@ def startServer(server):
     return server
 
 
-def printColumns(givenDesc):
-    """After retriving results of query, first print column names"""
-    log(tuple([desc[0] for desc in givenDesc]))
+def print_columns(given_desc):
+    """ After retriving results of query, first print column names """
+    log(tuple([desc[0] for desc in given_desc]))
 
 
-def runCommand(args, serverPort):
+def format_query(given_query):
+    """ Process a query based on the user input """
+    query_list = given_query.lower().split('_')
+    try:
+        if query_list[0] == 'list' and query_list[1] == 'tables':
+            return "select table_name from information_schema.tables where table_schema='public'"
+        elif query_list[0] == 'list' and query_list[1] == 'databases':
+            return "SELECT datname FROM pg_database WHERE datistemplate = false"
+        elif query_list[0] == 'get' and query_list[1] == 'all':
+            return "SELECT * FROM {0}".format('_'.join(query_list[2:]))
+        elif query_list[0] == 'get' and query_list[1].isdigit():
+            return "SELECT * FROM {1} limit {0}".format(query_list[1], '_'.join(query_list[2:]))
+        else:
+            return given_query
+    except KeyError:
+        return given_query
+
+
+def run_command(args, server_port):
     """main function to run a sql command against a given environment"""
     try:
         conn = psycopg2.connect(
             database=args.database,
             user=str(PARMS['db_user']),
             password=str(PARMS['db_password']),
-            port=serverPort
+            port=server_port
         )
         curs = conn.cursor()
         if args.query.lower().startswith('backup_'):
@@ -82,8 +102,8 @@ def runCommand(args, serverPort):
                     writer.writerow(each_row)
         else:
             curs.execute("""{0}""".format(args.query))
-            if args.query.lower().startswith("select"):
-                printColumns(curs.description)
+            if format_query(args.query).lower().startswith("select"):
+                print_columns(curs.description)
                 rows = curs.fetchall()
                 for each_row in rows:
                     log(each_row)
@@ -109,7 +129,7 @@ def runCommand(args, serverPort):
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(description=\
     'Connect to a Postgres and Run Queries against it via SSH Tunnels')
-    PARSER.set_defaults(method=runCommand)
+    PARSER.set_defaults(method=run_command)
     PARSER.add_argument('env', type=str, help=\
     'Environment Name where you want to run these queries?')
     PARSER.add_argument('database', type=str, help=\
@@ -123,7 +143,7 @@ if __name__ == "__main__":
     with open(ARGS.env + '-Config.json') as f:
         PARMS = json.load(f)
         if PARMS['db_server'] != 'localhost':
-            SERVER = connectToDbServer(
+            SERVER = connect_db_server(
                 str(PARMS['ssh_user']),
                 str(PARMS['ssh_pass']),
                 str(PARMS['db_server']),
@@ -136,11 +156,9 @@ if __name__ == "__main__":
 
     log(PARMS['db_server'])
     log(PARMS['db_port'])
+    ARGS.query = format_query(ARGS.query)
     log("{0}: {1}".format(ARGS.database, ARGS.query))
     ARGS.method(ARGS, GIVEN_PORT)
-    # getAllHearings = "select * from hearing"
-    # getAllUsers = "select * from cpp_user"
-    # getAllTables = "select table_name from information_schema.tables where table_schema='public'"
-    # getAllDatabases = "SELECT datname FROM pg_database WHERE datistemplate = false"
+    
     if SERVER is not None:
         SERVER.stop()
