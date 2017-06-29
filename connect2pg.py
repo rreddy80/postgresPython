@@ -5,11 +5,15 @@ python connect2pg.py <<environment>> <<database-name>> <<query-to-run>>
 
 to simply list all databases:
 ******************************
-python connect2pg.py <<environment>> get_all_databases
+python connect2pg.py <<environment>> list_all_databases
 
 to simply list all tables in a database:
 *****************************************
-python connect2pg.py <<environment>> <<database-name>> get_all_tables
+python connect2pg.py <<environment>> <<database-name>> list_all_tables
+
+to simply get all data in a table:
+***********************************
+
 """
 import sys
 import json
@@ -107,7 +111,7 @@ def run_command(args, server_port):
                 rows = curs.fetchall()
                 for each_row in rows:
                     log(each_row)
-            if args.query.lower().startswith("delete"):
+            if args.query.lower().startswith("delete") or args.query.lower().startswith("update"):
                 conn.commit()
         curs.close()
         conn.close()
@@ -159,6 +163,6 @@ if __name__ == "__main__":
     ARGS.query = format_query(ARGS.query)
     log("{0}: {1}".format(ARGS.database, ARGS.query))
     ARGS.method(ARGS, GIVEN_PORT)
-    
+
     if SERVER is not None:
         SERVER.stop()
