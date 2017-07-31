@@ -5,14 +5,19 @@ python connect2pg.py <<environment>> <<database-name>> <<query-to-run>>
 
 to simply list all databases:
 ******************************
-python connect2pg.py <<environment>> list_all_databases
+python connect2pg.py <<environment>> list_databases
 
 to simply list all tables in a database:
 *****************************************
-python connect2pg.py <<environment>> <<database-name>> list_all_tables
+python connect2pg.py <<environment>> <<database-name>> list_tables
 
 to simply get all data in a table:
 ***********************************
+python connect2pg.py <<environment>> <<database-name>> list_all_<<table_name>>
+
+to simply get only certain # of rows from a table:
+***********************************
+python connect2pg.py <<environment>> <<database-name>> list_<<number>>_<<table_name>>
 
 """
 import sys
@@ -72,9 +77,9 @@ def format_query(given_query):
             return "select table_name from information_schema.tables where table_schema='public'"
         elif query_list[0] == 'list' and query_list[1] == 'databases':
             return "SELECT datname FROM pg_database WHERE datistemplate = false"
-        elif query_list[0] == 'get' and query_list[1] == 'all':
+        elif query_list[0] == 'list' and query_list[1] == 'all':
             return "SELECT * FROM {0}".format('_'.join(query_list[2:]))
-        elif query_list[0] == 'get' and query_list[1].isdigit():
+        elif query_list[0] == 'list' and query_list[1].isdigit():
             return "SELECT * FROM {1} limit {0}".format(query_list[1], '_'.join(query_list[2:]))
         else:
             return given_query
@@ -111,7 +116,8 @@ def run_command(args, server_port):
                 rows = curs.fetchall()
                 for each_row in rows:
                     log(each_row)
-            if args.query.lower().startswith("delete") or args.query.lower().startswith("update"):
+            _operation = [args.query.lower().split()[0]]
+            if filter(lambda x: x in COMMIT_REQUIRED, _operation) > 0:
                 conn.commit()
         curs.close()
         conn.close()
@@ -120,7 +126,6 @@ def run_command(args, server_port):
         log(sys.exc_info()[1])
     except psycopg2.ProgrammingError as ex:
         log("{0} can't be run. please check the tables in the selected DB (below)".format(ex))
-        #x = printTables(curs)
     except:
         log(sys.exc_info()[1])
     else:
@@ -131,6 +136,7 @@ def run_command(args, server_port):
 
 
 if __name__ == "__main__":
+    COMMIT_REQUIRED = ['delete', 'update', 'insert']
     PARSER = argparse.ArgumentParser(description=\
     'Connect to a Postgres and Run Queries against it via SSH Tunnels')
     PARSER.set_defaults(method=run_command)

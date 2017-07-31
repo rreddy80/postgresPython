@@ -23,3 +23,25 @@ If you have multiple hops to reach the Db server, probably its a better idea to 
 }
 
 where localhost:6432 is actually pointing at your Db server. As you can see you don't need to give SSH_Server details as you have tackled this separately by doing local port forwarding.
+
+# Running queries against a database/ server
+
+run a query against a given environment:
+******************************************
+python connect2pg.py <<environment>> <<database-name>> <<query-to-run>>
+
+to simply list all databases:
+******************************
+python connect2pg.py <<environment>> list_databases
+
+to simply list all tables in a database:
+*****************************************
+python connect2pg.py <<environment>> <<database-name>> list_tables
+
+to simply get all data in a table:
+***********************************
+python connect2pg.py <<environment>> <<database-name>> list_all_<<table_name>>
+
+to simply get only certain # of rows from a table:
+***********************************
+python connect2pg.py <<environment>> <<database-name>> list_<<number>>_<<table_name>>
