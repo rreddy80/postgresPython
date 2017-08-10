@@ -28,20 +28,20 @@ where localhost:6432 is actually pointing at your Db server. As you can see you 
 
 run a query against a given environment:
 ******************************************
-python connect2pg.py <<environment>> <<database-name>> <<query-to-run>>
+python connect2pg.py environment database-name "query-to-run"
 
 to simply list all databases:
 ******************************
-python connect2pg.py <<environment>> list_databases
+python connect2pg.py environment list_databases
 
 to simply list all tables in a database:
 *****************************************
-python connect2pg.py <<environment>> <<database-name>> list_tables
+python connect2pg.py environment database-name list_tables
 
 to simply get all data in a table:
 ***********************************
-python connect2pg.py <<environment>> <<database-name>> list_all_<<table_name>>
+python connect2pg.py environment database-name list_all_table
 
 to simply get only certain # of rows from a table:
-***********************************
-python connect2pg.py <<environment>> <<database-name>> list_<<number>>_<<table_name>>
+*****************************************************************
+python connect2pg.py environment database-name list_number_table
